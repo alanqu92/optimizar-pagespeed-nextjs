@@ -1,0 +1,21 @@
+{
+  "name": "alanquezada-skills",
+  "owner": {
+    "name": "Alan Quezada"
+  },
+  "metadata": {
+    "description": "Skills de Alan Quezada (alanquezada.com) para Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "optimizar-pagespeed",
+      "description": "Lleva un sitio web (especialmente Next.js) a PageSpeed movil >= 90 y escritorio 100: medicion limpia con API de Google o Lighthouse local, playbook de correcciones, plantillas de codigo y auditoria de proyectos existentes.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/optimizar-pagespeed-nextjs"
+      ]
+    }
+  ]
+}
