@@ -173,3 +173,27 @@ sitio; hacerlo solo si el usuario lo pide.
 ---
 *© 2026 Alan Quezada — [alanquezada.com](https://alanquezada.com) · [th3seo.com](https://th3seo.com). Licencia MIT (ver
 `LICENSE`): uso libre conservando este aviso y el crédito a alanquezada.com.*
+
+## 7. Preparacion para agentes (Is Agentic / Ora) — https://is-agentic.com/scan
+
+Los criterios salen de https://ora.ai/docs. Escanear SIEMPRE antes y despues:
+
+```bash
+npx is-agentic <dominio>            # reporte legible (ojo: puede ser un reporte en cache; mira "Scanned")
+npx is-agentic <dominio> --json     # estructurado
+curl -s "https://is-agentic.com/api/v1/report?url=https%3A%2F%2F<dominio>"   # lectura, sin re-escanear
+# Re-verificar SOLO los checks tocados (fresco; 10/min por IP, 30 escaneos/24 h): NO escanear en masa
+curl -s -X POST https://ora.ai/api/scan/checks -H "Content-Type: application/json" \
+  -d '{"url":"https://<dominio>","checkIds":["agent-friendly-404","content-no-js","markdown-negotiation-vary","brand-search-accuracy","agent-instruction","trust-anchors"]}'
+```
+
+Correcciones (orden de retorno) y como se hicieron en alanquezada.com (75 -> mas alto):
+1. **404 amigable**: mantener HTTP 404; con `Accept: text/markdown` devolver `Content-Type: text/markdown` >=20 caracteres con enlaces a llms.txt/sitemap.
+2. **Contenido sin JS**: quitar `app/loading.tsx` del root (Suspense mueve el contenido a `<div hidden id="S:0">` y el HTML crudo queda con "Cargando..."); un solo H1 primero y niveles secuenciales.
+3. **Negociacion Markdown** (acceptmarkdown.com): `proxy.ts` reescribe `Accept: text/markdown` (q >= text/html, comodines no cuentan) a un route handler interno que pide el HTML al propio servidor y lo convierte con turndown. Respuesta: `text/markdown`, `Vary: Accept`, `Cache-Control: private, no-store`. Plantillas en `templates/agent/` (negotiate.ts, markdown.ts, agent-markdown-route.ts). Trampa: el handler ve la URL ORIGINAL tras el rewrite: pasar la ruta en un header (`x-agent-md-path`) con `NextResponse.rewrite(url,{request:{headers}})`. Sanear la ruta (anti-SSRF) y excluir /api, /admin, /_next.
+4. **Marca**: JSON-LD Person/WebSite con `@id`, `alternateName`, `worksFor`, `publisher`; el resto es fuera del sitio (Search Console, Bing Webmaster, perfiles coherentes, menciones). No prometer resultados.
+5. **when-to-use en llms.txt**: casos de uso concretos, "No lo uses para", como llamar (curl), endpoints con metodo y limites VERIFICADOS contra el codigo (nada inventado).
+
+**Trampa critica de Cloudflare:** una Cache Rule que cachea HTML ignora `Accept`: tras cualquier peticion HTML, `Accept: text/markdown` recibe el HTML en cache (HIT) y el check falla aunque el origen este bien. Solucion (requiere permiso de edicion de reglas): anadir a la expresion
+`and not any(http.request.headers["accept"][*] contains "text/markdown")`. Un token que solo purga no puede hacerlo. Tras cada deploy purgar cache y verificar con `scripts/verify-agent-endpoints.mjs <url>`; verificar tambien la URL exacta (sin cache-buster), que es lo que ve el escaner.
+Verificador: `node scripts/verify-agent-endpoints.mjs https://<dominio>` (adaptar el import de TOOL_ENDPOINTS o borrar la seccion de llms.txt si no aplica).
