@@ -1,11 +1,23 @@
-// Verificacion de integracion de la preparacion para agentes contra un servidor REAL (local o produccion).
-// Uso:  node tests/verify-agent-endpoints.mjs [BASE_URL]      (por defecto https://alanquezada.com)
-//       BASE=http://localhost:3113 node tests/verify-agent-endpoints.mjs
+// Plantilla generica de la skill optimizar-pagespeed-nextjs: verificacion de integracion de la preparacion
+// para agentes contra un servidor REAL (local o produccion). Copiala al proyecto y ajusta BASE / rutas de ejemplo.
+// Uso:  node verify-agent-endpoints.mjs <BASE_URL>      (o BASE=https://tusitio.com node verify-agent-endpoints.mjs)
 // Replica los criterios de Ora / is-agentic: estado HTTP final, Content-Type, Vary: Accept y cuerpo (no solo el estado).
 // Sale con codigo 1 si alguna comprobacion falla.
-import { TOOL_ENDPOINTS } from "../lib/agent/when-to-use.ts";
+//
+// La seccion 5 (listar endpoints de herramientas contra lib/agent/when-to-use.ts) es especifica de alanquezada.com:
+// aqui se importa de forma opcional (si el archivo no existe en tu proyecto, esa comprobacion simplemente se omite).
+let TOOL_ENDPOINTS = [];
+try {
+  ({ TOOL_ENDPOINTS } = await import("../lib/agent/when-to-use.ts"));
+} catch {
+  /* proyecto sin ese modulo: se omite la comprobacion de endpoints de herramientas */
+}
 
-const BASE = (process.argv[2] || process.env.BASE || "https://alanquezada.com").replace(/\/$/, "");
+const BASE = (process.argv[2] || process.env.BASE || "").replace(/\/$/, "");
+if (!BASE) {
+  console.error("Uso: node verify-agent-endpoints.mjs <BASE_URL>   (o BASE=https://tusitio.com node verify-agent-endpoints.mjs)");
+  process.exit(1);
+}
 const UA = { "User-Agent": "verify-agent-endpoints/1.0" };
 let fallos = 0;
 let total = 0;
@@ -103,10 +115,13 @@ r = await get("/llms.txt", null);
 body = await r.text();
 check("200 text/plain", r.status === 200 && ct(r).startsWith("text/plain"), `${r.status} ${ct(r)}`);
 check("incluye la seccion 'When to use this site'", /^## .*When to use/im.test(body));
-check("nombra casos de uso concretos y limites", /audit/i.test(body) && /No lo uses para/.test(body));
-const faltan = TOOL_ENDPOINTS.filter((t) => !body.includes(`POST ${BASE.startsWith("http://localhost") ? "https://alanquezada.com" : BASE}/api/tools/${t.slug}`));
-check("lista los 12 endpoints de herramientas con su metodo", faltan.length === 0, `faltan: ${faltan.map((t) => t.slug).join(", ")}`);
-check("ya no afirma que la visibilidad en IA consulta a ChatGPT", !/si ChatGPT te recomienda/.test(body));
+check("nombra casos de uso concretos y limites ('No lo uses para' u equivalente)", /No lo uses para|do not use|not for/i.test(body));
+if (TOOL_ENDPOINTS.length) {
+  const faltan = TOOL_ENDPOINTS.filter((t) => !body.includes(`POST ${BASE}/api/tools/${t.slug}`));
+  check(`lista los ${TOOL_ENDPOINTS.length} endpoints con su metodo`, faltan.length === 0, `faltan: ${faltan.map((t) => t.slug).join(", ")}`);
+} else {
+  console.log("  --   (omitida: este proyecto no tiene lib/agent/when-to-use.ts con TOOL_ENDPOINTS)");
+}
 
 // 6. Datos estructurados de marca
 console.log("\nMarca (JSON-LD)");
@@ -120,9 +135,12 @@ const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/
 });
 const persona = ld.find((x) => x["@type"] === "Person");
 const sitio = ld.find((x) => x["@type"] === "WebSite");
-check("Person con nombre, @id, alternateName y worksFor", persona?.name === "Alan Quezada" && persona["@id"] && persona.alternateName?.includes("alanquezada.com") && persona.worksFor?.name === "TH3SEO", JSON.stringify(persona || {}).slice(0, 160));
-check("WebSite con alternateName y publisher", sitio?.alternateName?.includes("alanquezada.com") && sitio.publisher?.["@id"] === persona?.["@id"], JSON.stringify(sitio || {}).slice(0, 160));
-check("el <title> de la home empieza con la marca", /<title>\s*Alan Quezada/.test(html));
+// Ajusta MARCA/DOMINIO al copiar esta plantilla a un proyecto (aqui se infieren del <title> y de BASE para que la
+// plantilla corra tal cual contra cualquier sitio).
+const DOMINIO = new URL(BASE).hostname.replace(/^www\./, "");
+check("Person con @id y alternateName con el dominio", !!persona?.["@id"] && !!persona?.alternateName?.some((a) => a.includes(DOMINIO)), JSON.stringify(persona || {}).slice(0, 160));
+check("WebSite con alternateName y publisher apuntando a la Person", !!sitio?.alternateName?.some((a) => a.includes(DOMINIO)) && sitio?.publisher?.["@id"] === persona?.["@id"], JSON.stringify(sitio || {}).slice(0, 160));
+check("el <title> de la home no esta vacio", /<title>\s*\S+/.test(html));
 
 console.log(`\n${total - fallos}/${total} comprobaciones correctas${fallos ? `, ${fallos} FALLAN` : ""}\n`);
 process.exit(fallos ? 1 : 0);
