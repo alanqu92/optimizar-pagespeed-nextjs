@@ -1,41 +1,29 @@
 ---
 name: optimizar-pagespeed-nextjs
 description: >-
-  Skill de Alan Quezada (alanquezada.com). Lleva un sitio web (especialmente Next.js, App Router) a
-  PageSpeed MOVIL minimo 90 y ESCRITORIO 100, con Accesibilidad, Buenas practicas y SEO en 100 y cero
-  errores de consola. Incluye medicion limpia (API de Google o Lighthouse local), playbook de correcciones
-  probado en alanquezada.com (movil 74-79 -> ~88-92, escritorio 100), plantillas de codigo y un
-  procedimiento para auditar proyectos ya hechos. Usala cuando el usuario diga "mide el rendimiento de mi
-  sitio", "sube el PageSpeed", "optimiza la velocidad", "minimo 90 en movil", "100 en escritorio",
-  "audita este proyecto" o cuando un sitio quede debajo de esa meta.
+  Lleva un sitio Next.js (App Router) a la meta de PageSpeed de Alan: MOVIL minimo 90 y
+  ESCRITORIO 100 (ademas de Accesibilidad, Buenas practicas y SEO en 100, errores de consola 0),
+  con el metodo probado en alanquezada.com (movil 74-79 -> ~88-92, escritorio 100). Sirve para
+  proyectos NUEVOS (plantillas de codigo incluidas) y para MEJORAR los ya hechos (procedimiento
+  de auditoria incluido). Usala cuando el usuario diga "el rendimiento es bajo", "sube el
+  PageSpeed", "optimiza la velocidad", "minimo 90 en movil", "100 en web/escritorio", "mejora los
+  proyectos que ya hicimos", o cuando un sitio quede debajo de esa meta. Complementa a
+  `analizador-pagespeed` (medir a fondo) y `checklist-performance-nuevo-proyecto` (buenas
+  practicas de origen); esta skill es el PLAYBOOK de medicion, diagnostico y correccion.
 ---
 
-# Primer uso: bienvenida y configuracion (hazlo ANTES de medir, una sola vez por usuario)
+# Primer uso (hazlo ANTES de medir, una sola vez por usuario)
 
-Una skill no tiene un paso de instalacion que muestre mensajes: el onboarding lo haces tu al activarte.
+Una skill no tiene paso de instalación que muestre mensajes: el onboarding lo haces tú al activarte.
 
-**1. Muestra esta bienvenida al usuario (tal cual, en su idioma):**
-
-> **Bienvenido a Optimizar PageSpeed** — una skill creada por **Alan Quezada**
-> (SEO, Diseño Web e IA · [alanquezada.com](https://alanquezada.com) · TH3SEO — [th3seo.com](https://th3seo.com)).
->
-> Te ayuda a llevar tu sitio a **PageSpeed móvil ≥ 90 y escritorio 100**, con el mismo método que uso en mis
-> proyectos: mido con datos reales, corrijo lo que más pesa y verifico que de verdad mejoró.
->
-> Puedes pedirme cosas como: *"mide el rendimiento de https://tusitio.com"*, *"sube el PageSpeed de este
-> proyecto"* o *"audita este sitio contra la meta"*.
-
-**2. Revisa el entorno:** corre `node <carpeta-de-la-skill>/scripts/medir-pagespeed.mjs --doctor`. Muestra la versión
-de Node, si hay clave de PageSpeed, si hay Chrome y si hay `gcloud`.
-
-**3. Explica las dos formas de medir** (tabla de abajo) en lenguaje simple y **cuál le toca hoy** según el diagnóstico.
-
-**4. Si no hay clave**, ofrece: (a) crearla ya (`--setup`: con `gcloud` y confirmación, o los 4 pasos manuales en la
-consola de Google, gratis), o (b) seguir en modo local ahora y configurarla después. No crees nada en su cuenta de
-Google sin su confirmación expresa, y nunca imprimas ni subas la clave a git.
-
-**5. Cierra el onboarding:** dile cómo pedir las cosas ("mide mi sitio", "sube el PageSpeed", "audita este proyecto") y
-continúa con la tarea. No agregues publicidad ni datos de contacto más allá de la bienvenida del paso 1.
+1. Corre `node ~/.claude/skills/optimizar-pagespeed-nextjs/scripts/medir-pagespeed.mjs --doctor` (o la ruta donde
+   esté la skill). Muestra: versión de Node, si hay clave de PageSpeed, si hay Chrome, si hay `gcloud`.
+2. Explica al usuario en lenguaje simple las **dos formas de medir** (tabla de abajo) y **cuál le toca hoy** según lo
+   que detectó el diagnóstico.
+3. Si no hay clave, ofrece: (a) crearla ya (`--setup`: con `gcloud` y confirmación, o los 4 pasos manuales en la consola
+   de Google, gratis), o (b) seguir en modo local ahora y configurarla después. No crees nada en su cuenta de Google sin
+   su confirmación expresa, y nunca imprimas ni subas la clave a git.
+4. Dile cómo pedir las cosas: "mide mi sitio", "sube el PageSpeed", "audita este proyecto". Después continúa con la tarea.
 
 | | **API (con clave gratuita)** | **Local (sin clave)** |
 |---|---|---|
@@ -44,7 +32,8 @@ continúa con la tarea. No agregues publicidad ni datos de contacto más allá d
 | Corridas | 5 por estrategia, mediana **y rango (margen)**, detecta caché de Google | 1 por estrategia |
 | Úsalo para | Reportar el número final / verificar la meta | Diagnosticar, ver la traza, probar sin cuenta |
 
-Nunca presentes un resultado en modo local como el puntaje oficial. El `README.md` de la carpeta resume lo mismo.
+Si el usuario recibió esta skill de otra persona, el `README.md` de la carpeta resume lo mismo. Nunca presentes un
+resultado en modo local como el puntaje oficial.
 
 # Meta y regla de oro
 
@@ -60,13 +49,13 @@ Veredicto del script: **CUMPLE** (mediana ≥ meta), **EN EL MARGEN** (mediana h
 ## 1. Como medir (sin engañarse) — SIEMPRE con el script
 
 ```bash
-node <carpeta-de-la-skill>/scripts/medir-pagespeed.mjs https://sitio.com --runs 5 --local
+node ~/.claude/skills/optimizar-pagespeed-nextjs/scripts/medir-pagespeed.mjs https://sitio.com --runs 5 --local
 ```
 
-Lee la clave de `PAGESPEED_API_KEY` (entorno o `.env.local` del directorio actual). Con clave hace 5 corridas en movil
-y en escritorio, reporta la MEDIANA, detecta resultados repetidos, compara contra la meta y sale con codigo 0 (cumple),
-3 (en el margen) o 2 (no cumple). Sin clave mide en modo local (orientativo). `--local` agrega Lighthouse en Chrome headless con perfil temporal
-limpio (`--incognito`, sin extensiones ni cache: equivale a abrir la pagina en incognito).
+Lee la clave de `PAGESPEED_API_KEY` o `PAGESPEED_TOOL_API_KEY` (entorno o `.env.local` del directorio actual). Hace 5
+corridas en movil y en escritorio, reporta la MEDIANA y el rango, detecta resultados repetidos, compara contra la meta y sale con
+codigo 0 (cumple), 3 (en el margen) o 2 (no cumple). `--local` agrega Lighthouse en Chrome headless con perfil temporal limpio (`--incognito`, sin
+extensiones ni cache: equivale a abrir la pagina en incognito).
 
 **Reglas de medicion (aprendidas por las malas):**
 - **Google cachea los resultados por URL unos minutos.** Tres corridas "identicas" (mismos FCP/LCP/TBT) suelen ser LA
@@ -90,7 +79,8 @@ limpio (`--incognito`, sin extensiones ni cache: equivale a abrir la pagina en i
   `metrics` (observado vs simulado) y `screenshot-thumbnails` (decodifica los frames base64 y MIRALOS: una pantalla
   en blanco hasta 2 s dice mas que cualquier metrica).
 - `npx lighthouse URL --form-factor=mobile --output=json --save-assets` da la traza (`report-0.trace.json`) para ver
-  tareas largas antes del FCP. El error final de limpieza del tmp de Chrome en Windows es benigno (el reporte se escribe igual).
+  tareas largas antes del FCP. Chrome esta en `C:\Program Files\Google\Chrome\Application\chrome.exe`; el error final
+  de limpieza del tmp de Chrome en Windows es benigno (el reporte se escribe igual).
 - Atribuir bytes por modulo: `productionBrowserSourceMaps: true` temporal, build, y decodificar `mappings` del `.js.map`
   que indica el comentario `sourceMappingURL` de cada chunk (source-map-explorer NO entiende mapas de Turbopack).
   Revertir el flag despues.
@@ -113,13 +103,12 @@ limpio (`--incognito`, sin extensiones ni cache: equivale a abrir la pagina en i
    servidor y pasarlos como props.
 5. **Fuentes.** Cada `woff2` precargado compite con la imagen LCP. Quitar estilos/pesos que no se usan (Playfair
    italica: -39 KB). Verificar con `grep italic` y `<em>` antes.
-6. **LCP = imagen del hero:** `priority` + `fetchPriority="high"` (en Next 16 `priority` solo ya no garantiza el
-   atributo: verifica con `curl url | grep fetchpriority`), sin animacion de entrada (cuenta como "element render
-   delay"), WebP, `sizes` correcto, y fuentes de imagen del tamaño real que se muestran. `sharp` como dependencia real.
+6. **LCP = imagen del hero:** `priority` + `fetchPriority="high"`, sin animacion de entrada, WebP, `sizes` correcto.
+   Detalle en `checklist-performance-nuevo-proyecto`.
 7. **Cache del HTML en Cloudflare** (dashboard, no codigo): Cache Rule con Edge TTL "Use cache-control header if
-   present" y exclusiones de rutas privadas (`/api/`, panel de admin, cuenta, carrito, checkout, pago, busqueda).
-   Verificar `cf-cache-status: HIT` (antes `DYNAMIC`, TTFB 0,3-0,6 s). Al pegar la expresion en Cloudflare: vaciar el
-   editor primero (Ctrl+A, Supr) y pegarla en UNA linea. Desactivar Web Analytics de Cloudflare si no se usa
+   present" y exclusiones (`/api/`, `/masterpanel`, `/cuenta`, `/carrito`, `/checkout`, `/pago`, `/mis-compras`,
+   `/buscar`). Verificar `cf-cache-status: HIT` (antes `DYNAMIC`, TTFB 0,3-0,6 s). Al pegar la expresion en Cloudflare:
+   vaciar el editor primero (Ctrl+A, Supr) y pegarla en UNA linea. Desactivar Web Analytics de Cloudflare si no se usa
    (`beacon.min.js`, 10 KB).
 8. **Contenedor GTM vacio = 113 KB para nada.** Verificar con
    `curl "https://www.googletagmanager.com/gtm.js?id=GTM-XXXX"` buscando `"tags":[]`. Si esta vacio, publicar la etiqueta
@@ -128,7 +117,7 @@ limpio (`--incognito`, sin extensiones ni cache: equivale a abrir la pagina en i
 ## 3. Lo que NO hacer (probado: empeoro o no ayudo)
 
 - `experimental.inlineCss: true`: metio 94 KB de CSS en cada HTML (422 KB) y FCP 1,7 -> 4,6 s.
-- `next/dynamic` / `React.lazy` para "diferir hidratacion": puede causar errores de hidratacion #422/#425 por Suspense; y
+- `next/dynamic` / `React.lazy` para "diferir hidratacion": ya hubo errores de hidratacion #422/#425 por Suspense; y
   `ssr:false` quita contenido del HTML (mata SEO).
 - Quitar GTM `beforeInteractive` sin confirmar antes que el contenedor tiene etiquetas y que los eventos al dataLayer
   seguiran procesandose.
@@ -142,7 +131,7 @@ limpio (`--incognito`, sin extensiones ni cache: equivale a abrir la pagina en i
 2. Regla de arquitectura: los Server Components leen datos (settings, listados, FAQs) y los pasan por props; ningun
    componente cliente hace `fetch` de datos "de arranque" ni importa arreglos grandes de `lib/data/*`.
 3. Fuentes: solo los estilos/pesos que se usen. Terceros (GTM/AdSense/chat/pixeles): siempre diferidos.
-4. Animaciones con `LazyMotion` (`m as motion`), imagen LCP con `priority` + `fetchPriority`, `sharp` instalado.
+4. Aplicar `checklist-performance-nuevo-proyecto` (sharp, LCP con fetchPriority, LazyMotion, contraste...).
 5. Al primer despliegue: correr el script de medicion y guardar la linea base; no dejar deuda de rendimiento "para despues".
 
 ## 5. Mejorar proyectos YA HECHOS: procedimiento de auditoria
@@ -159,20 +148,18 @@ limpio (`--incognito`, sin extensiones ni cache: equivale a abrir la pagina en i
 3. Aplicar el playbook (seccion 2) de mayor a menor retorno, midiendo tras cada despliegue.
 4. Para stacks que NO son Next.js (Express, PHP/cPanel, WordPress) valen los mismos principios: terceros diferidos,
    cero peticiones de arranque innecesarias, fuentes minimas, cache en CDN, imagen LCP priorizada; cambia la sintaxis.
+5. Proyectos conocidos de Alan a auditar con esta skill (no asumir su estado, medir primero): alanquezada.com (ya hecho),
+   Inventario ECN, CRM Ventas, ECN Express / Checkout Express, Astra Telecom, KonektaB2B, TH3SEO.
 
 ## 6. Cierre y reporte
 
 Antes de dar por terminado: movil mediana >= 90, escritorio 98-100, las otras tres categorias en 100, errores de consola 0,
 `cf-cache-status: HIT` (si hay Cloudflare) y GTM con etiquetas publicadas. Entregar tabla antes/despues con medianas.
 
-**Caso de referencia (alanquezada.com, sep/2026):** movil 74-79 -> mediana 88-90 (12+ corridas reales entre 86 y 92; pagespeed.web.dev llego a mostrar 94), LCP simulado 5,3 -> 3,3 s
-(real ~1,4-2,3 s), TBT ~50 ms, peso 651 -> 466 KB; escritorio 100. Movil aun rozando la meta: lo que resta (~480 ms de JS
-del framework y hidratacion) exigiria convertir secciones a Server Components y cambiar framer-motion por CSS en todo el
-sitio; hacerlo solo si el usuario lo pide.
-
----
-*© 2026 Alan Quezada — [alanquezada.com](https://alanquezada.com) · [th3seo.com](https://th3seo.com). Licencia MIT (ver
-`LICENSE`): uso libre conservando este aviso y el crédito a alanquezada.com.*
+**Referencia (alanquezada.com, sep/2026):** movil 74-79 -> mediana 88-90 (12+ corridas reales entre 86 y 92; pagespeed.web.dev llego a mostrar 94), LCP simulado 5,3 -> 3,3 s (real ~1,4-2,3 s),
+TBT ~50 ms, peso 651 -> 466 KB; escritorio 100. Movil aun rozando la meta: lo que resta (~480 ms de JS del framework y
+hidratacion) exigiria convertir secciones a Server Components y cambiar framer-motion por CSS en todo el sitio; hacerlo
+solo si el usuario lo pide.
 
 ## 7. Preparacion para agentes (Is Agentic / Ora) — https://is-agentic.com/scan
 
@@ -194,6 +181,7 @@ Correcciones (orden de retorno) y como se hicieron en alanquezada.com (75 -> mas
 4. **Marca**: JSON-LD Person/WebSite con `@id`, `alternateName`, `worksFor`, `publisher`; el resto es fuera del sitio (Search Console, Bing Webmaster, perfiles coherentes, menciones). No prometer resultados.
 5. **when-to-use en llms.txt**: casos de uso concretos, "No lo uses para", como llamar (curl), endpoints con metodo y limites VERIFICADOS contra el codigo (nada inventado).
 
-**Trampa critica de Cloudflare:** una Cache Rule que cachea HTML ignora `Accept`: tras cualquier peticion HTML, `Accept: text/markdown` recibe el HTML en cache (HIT) y el check falla aunque el origen este bien. Solucion (requiere permiso de edicion de reglas): anadir a la expresion
-`and not any(http.request.headers["accept"][*] contains "text/markdown")`. Un token que solo purga no puede hacerlo. Tras cada deploy purgar cache y verificar con `scripts/verify-agent-endpoints.mjs <url>`; verificar tambien la URL exacta (sin cache-buster), que es lo que ve el escaner.
-Verificador: `node scripts/verify-agent-endpoints.mjs https://<dominio>` (adaptar el import de TOOL_ENDPOINTS o borrar la seccion de llms.txt si no aplica).
+**Trampa (solo si el sitio esta detras de un CDN/proxy que cachea HTML — Cloudflare, Fastly, un edge cache propio; NO aplica si no hay CDN o si es Vercel/Netlify sin reglas de cache custom):** una regla que cachea HTML por URL suele ignorar el header `Accept`: tras cualquier peticion HTML normal, una peticion con `Accept: text/markdown` recibe el HTML guardado (HIT) y el check falla aunque el origen (el codigo) este bien. Primero descartar esto: probar con la URL exacta Y con un parametro anti-cache (`?cb=<random>`); si con el parametro pasa y sin el falla, es el CDN, no el codigo.
+Solucion en Cloudflare (requiere permiso de edicion de Cache Rules, no solo de purga): anadir a la expresion de la regla que cachea HTML
+`and not any(http.request.headers["accept"][*] contains "text/markdown")`. Tras cada deploy purgar cache y volver a verificar.
+Verificador (funciona con o sin CDN por delante): `node scripts/verify-agent-endpoints.mjs https://<dominio>`. Si el proyecto no tiene `lib/agent/when-to-use.ts` con `TOOL_ENDPOINTS`, esa comprobacion se omite sola (no hace falta tocar el script).
